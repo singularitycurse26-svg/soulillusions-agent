@@ -1,6 +1,20 @@
-# SoulIllusions Agent
+<div align="center">
 
-Autonomous AI agent with a full web UI — chat, voice assistant, book writer, audiobook generator, and autonomous task execution. Runs entirely locally with Ollama. No API keys, no cloud, no VPS required.
+# 🎭 SoulIllusions Agent
+
+<img src="assets/soulillusions-agent-preview.jpg" width="400" alt="SoulIllusions Agent" />
+
+### Autonomous AI agent with a full web UI — chat, voice, books, and more
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ollama](https://img.shields.io/badge/Ollama-compatible-orange.svg)](https://ollama.ai)
+
+Runs entirely locally with Ollama. No API keys, no cloud, no VPS required.
+
+</div>
+
+---
 
 ## Quick Start
 
