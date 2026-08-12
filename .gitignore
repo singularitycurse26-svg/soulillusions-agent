@@ -1,0 +1,17 @@
+# Build artifacts
+*.egg-info/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data files (generated at runtime)
+*.db
+agent_workspace/
+book_library/
+
+# IDE
+.vscode/
+.idea/
+*.swp

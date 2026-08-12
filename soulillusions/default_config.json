@@ -1,0 +1,41 @@
+{
+  "mode": "local",
+  "local_model": "dolphin-mistral:latest",
+  "local_inference_url": "http://localhost:11434",
+  "server_model": "qwen2.5:14b",
+  "server_inference_url": "",
+  "server_api_key": "",
+  "allow_user_local": true,
+  "user_llm_override": null,
+  "api_keys": {
+    "anthropic": "",
+    "openai": "",
+    "google": ""
+  },
+  "cloud_model": "claude-sonnet-4-20250514",
+  "always_on": true,
+  "max_actions_before_refresh": 10,
+  "context_window_tokens": 32000,
+  "sub_agents": {
+    "coder": {
+      "enabled": true,
+      "specialty": "code_writing"
+    },
+    "trader": {
+      "enabled": true,
+      "specialty": "day_trading"
+    },
+    "researcher": {
+      "enabled": true,
+      "specialty": "web_research"
+    },
+    "browser": {
+      "enabled": true,
+      "specialty": "browser_automation"
+    }
+  },
+  "skills": [],
+  "project_queue": [],
+  "autonomous_mode": true,
+  "max_concurrent_projects": 3
+}

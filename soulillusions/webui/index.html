@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SoulIllusions — Autonomous AI Agent</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0a0a0f;
+  --bg2: #10101a;
+  --bg3: #16162a;
+  --bg4: #1c1c34;
+  --border: #1e1e35;
+  --text: #e2e2ea;
+  --muted: #8a8aa0;
+  --accent: #4facfe;
+  --accent2: #00f2fe;
+  --green: #00ff88;
+  --red: #ff4466;
+  --yellow: #ffcc00;
+  --purple: #a855f7;
+  --orange: #f97316;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+/* ===== Title bar ===== */
+.titlebar {
+  height: 40px;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.titlebar .brand { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
+.titlebar .brand .logo { width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.titlebar .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: rgba(168,85,247,.2); color: var(--purple); font-weight: 600; }
+
+/* ===== Layout ===== */
+.app { flex: 1; display: flex; overflow: hidden; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 260px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.sidebar-top { padding: 10px 10px 6px; }
+.sidebar-top .logo-area { display: flex; align-items: center; gap: 10px; padding: 4px 4px 12px; }
+.sidebar-top .logo-area .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.sidebar-top .logo-area .name { font-size: 15px; font-weight: 700; }
+
+.new-chat-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--text); cursor: pointer; font-size: 13px;
+  font-weight: 600; transition: all .15s;
+}
+.new-chat-btn:hover { background: var(--bg4); border-color: var(--accent); }
+
+.nav-section { padding: 4px 10px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px;
+  transition: all .15s;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: linear-gradient(90deg, rgba(79,172,254,.18), rgba(79,172,254,.05)); color: var(--accent); }
+.nav-item .ic { font-size: 16px; width: 20px; text-align: center; }
+
+.chat-history-wrap { flex: 1; overflow-y: auto; padding: 4px 10px 10px; }
+.chat-history-wrap .nav-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); padding: 8px 10px 4px; font-weight: 600;
+}
+.history-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--muted);
+  transition: all .12s; white-space: nowrap; overflow: hidden;
+}
+.history-item:hover { background: var(--bg3); color: var(--text); }
+.history-item.active { background: var(--bg4); color: var(--text); }
+.history-item .title { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.history-item .del { opacity: 0; color: var(--red); font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+.history-item:hover .del { opacity: 1; }
+
+.sidebar .footer { padding: 8px 10px; border-top: 1px solid var(--border); }
+.status-pill {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--bg3); border-radius: 8px; font-size: 11px; color: var(--muted);
+}
+.status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+.status-pill .dot.on { background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ===== Panels ===== */
+.panel { flex: 1; display: none; overflow: hidden; }
+.panel.active { display: flex; flex-direction: column; }
+
+/* ===== Chat ===== */
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-scroll { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+.msg { max-width: 78%; }
+.msg .who { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.msg .bubble { padding: 12px 16px; border-radius: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.msg.user { align-self: flex-end; }
+.msg.user .bubble { background: linear-gradient(135deg, rgba(79,172,254,.22), rgba(0,242,254,.10)); border: 1px solid rgba(79,172,254,.3); }
+.msg.ai { align-self: flex-start; }
+.msg.ai .bubble { background: var(--bg3); border: 1px solid var(--border); }
+.msg.jarvis { align-self: flex-start; }
+.msg.jarvis .bubble { background: rgba(168,85,247,.15); border: 1px solid rgba(168,85,247,.3); }
+.msg.jarvis .who { color: var(--purple); }
+
+.chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.chat-empty .big-ic { font-size: 48px; opacity: .5; }
+.chat-empty h2 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.chat-empty p { color: var(--muted); font-size: 14px; max-width: 420px; text-align: center; line-height: 1.5; }
+
+/* Composer */
+.composer { padding: 14px 24px 18px; border-top: 1px solid var(--border); }
+.composer-inner {
+  display: flex; gap: 10px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 8px 8px 16px; align-items: flex-end;
+}
+.composer-inner:focus-within { border-color: var(--accent); }
+.composer textarea {
+  flex: 1; background: transparent; border: none; color: var(--text);
+  font-size: 14px; font-family: inherit; resize: none; outline: none;
+  max-height: 140px; line-height: 1.5; padding: 6px 0;
+}
+.composer .send-btn {
+  padding: 10px 20px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 9px; color: #06131f; font-weight: 700; cursor: pointer; font-size: 13px;
+}
+.composer .send-btn:hover { filter: brightness(1.15); }
+.composer .send-btn:disabled { opacity: .5; cursor: not-allowed; }
+.composer .mic-btn {
+  padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--purple); cursor: pointer; font-size: 16px;
+}
+.composer .mic-btn:hover { border-color: var(--purple); }
+.composer .mic-btn.listening { background: rgba(168,85,247,.2); border-color: var(--purple); animation: pulse 1.5s infinite; }
+.composer .model-pick {
+  background: var(--bg2); color: var(--muted); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer;
+}
+
+/* Status bar */
+.statusbar {
+  display: flex; align-items: center; gap: 16px; padding: 6px 24px;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--muted); flex-shrink: 0;
+}
+.statusbar .sb-item { display: flex; align-items: center; gap: 5px; }
+
+/* ===== Jarvis Panel ===== */
+.jarvis-view { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 800px; margin: 0 auto; width: 100%; }
+.jarvis-hero {
+  background: linear-gradient(135deg, var(--bg3), #1a1530); border: 1px solid rgba(168,85,247,.3);
+  border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 24px;
+}
+.jarvis-hero .jarvis-orb {
+  width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 16px;
+  background: radial-gradient(circle, var(--purple), rgba(168,85,247,.2));
+  display: flex; align-items: center; justify-content: center; font-size: 36px;
+  animation: pulse 3s infinite;
+}
+.jarvis-hero .jarvis-orb.listening { animation: pulse 1s infinite; background: radial-gradient(circle, var(--green), rgba(0,255,136,.2)); }
+.jarvis-hero h2 { font-size: 22px; margin-bottom: 8px; }
+.jarvis-hero p { color: var(--muted); font-size: 13px; max-width: 400px; margin: 0 auto; }
+.jarvis-controls { display: flex; gap: 12px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.jarvis-btn {
+  padding: 12px 24px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--text); cursor: pointer; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px; transition: all .15s;
+}
+.jarvis-btn:hover { border-color: var(--purple); }
+.jarvis-btn.active { background: rgba(168,85,247,.2); border-color: var(--purple); color: var(--purple); }
+.jarvis-btn.primary { background: linear-gradient(135deg, var(--purple), var(--accent)); color: #fff; border: none; }
+
+.jarvis-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 24px; }
+.jarvis-stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.jarvis-stat-card .v { font-size: 24px; font-weight: 800; color: var(--purple); }
+.jarvis-stat-card .l { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.jarvis-log { margin-top: 24px; }
+.jarvis-log h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+.jarvis-log-entry {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 8px; font-size: 12px;
+}
+.jarvis-log-entry .cmd { color: var(--purple); font-weight: 600; }
+.jarvis-log-entry .resp { color: var(--muted); margin-top: 6px; }
+.jarvis-log-entry .meta { font-size: 10px; color: var(--muted); margin-top: 6px; display: flex; gap: 12px; }
+
+/* ===== Browser Panel ===== */
+.browser-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.browser-bar {
+  display: flex; gap: 8px; padding: 10px 16px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); align-items: center;
+}
+.browser-bar input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 14px; color: var(--text); font-size: 13px; outline: none;
+}
+.browser-bar input:focus { border-color: var(--accent); }
+.browser-bar button {
+  padding: 9px 16px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); cursor: pointer; font-size: 13px;
+}
+.browser-bar button:hover { border-color: var(--accent); }
+.browser-bar .go-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06131f; font-weight: 700; border: none; }
+.browser-frame-wrap { flex: 1; overflow: hidden; background: #fff; }
+.browser-frame-wrap iframe { width: 100%; height: 100%; border: none; }
+.browser-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--bg); }
+.browser-empty .big-ic { font-size: 48px; opacity: .5; }
+.browser-empty h2 { font-size: 20px; color: var(--text); }
+.browser-empty p { color: var(--muted); font-size: 13px; max-width: 400px; text-align: center; }
+.browser-bookmarks { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+.browser-bookmark {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; font-size: 13px; transition: all .15s;
+}
+.browser-bookmark:hover { border-color: var(--accent); background: var(--bg4); }
+
+/* ===== Agent Panel ===== */
+.agent-view { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 900px; margin: 0 auto; width: 100%; }
+.agent-status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.agent-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.agent-card .v { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.agent-card .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.agent-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.agent-goal-area { margin-top: 16px; }
+.agent-goal-area h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+.agent-goal-input { display: flex; gap: 10px; margin-bottom: 16px; }
+.agent-goal-input input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px; color: var(--text); font-size: 14px; outline: none;
+}
+.agent-goal-input input:focus { border-color: var(--accent); }
+.agent-goal-input button {
+  padding: 12px 20px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 10px; color: #06131f; font-weight: 700; cursor: pointer; font-size: 13px;
+}
+
+/* ===== Overview Panel ===== */
+.overview { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 900px; margin: 0 auto; width: 100%; }
+.ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.ov-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.ov-card .v { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.ov-card .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ===== Config Panel ===== */
+.config-view { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 700px; margin: 0 auto; width: 100%; }
+.config-row { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.config-row .label { font-size: 13px; }
+.config-row .value { font-size: 12px; color: var(--muted); font-family: Consolas, monospace; }
+.config-row select, .config-row input {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; color: var(--text); font-size: 13px;
+}
+
+/* ===== Books Panel ===== */
+.books-view { flex: 1; overflow-y: auto; padding: 24px 32px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.books-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.books-header h3 { color: var(--accent); font-size: 16px; }
+.books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
+.book-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; cursor: pointer; transition: all .15s; }
+.book-card:hover { border-color: var(--accent); }
+.book-card h4 { font-size: 15px; margin-bottom: 6px; }
+.book-card .book-meta { font-size: 11px; color: var(--muted); display: flex; gap: 12px; margin-bottom: 8px; }
+.book-card .book-desc { font-size: 12px; color: var(--muted); line-height: 1.4; max-height: 60px; overflow: hidden; }
+.book-card .book-actions { display: flex; gap: 6px; margin-top: 12px; }
+.book-card .book-actions button { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--muted); cursor: pointer; }
+.book-card .book-actions button:hover { color: var(--text); border-color: var(--accent); }
+.book-card .book-actions .del:hover { color: var(--red); border-color: var(--red); }
+.book-card .book-status { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; display: inline-block; }
+.book-status.draft { background: rgba(234,179,8,.15); color: var(--yellow); }
+.book-status.writing { background: rgba(79,172,254,.15); color: var(--accent); }
+.book-status.completed { background: rgba(34,197,94,.15); color: var(--green); }
+
+/* Book detail / writer */
+.book-detail { flex: 1; overflow-y: auto; padding: 24px 32px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.book-detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.book-detail-header h2 { font-size: 22px; }
+.book-detail-header .back-btn { padding: 8px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; font-size: 13px; }
+.book-detail-header .back-btn:hover { border-color: var(--accent); }
+.book-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.book-tab { padding: 8px 16px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+.book-tab:hover { color: var(--text); }
+.book-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Chapter list */
+.chapter-list { display: flex; flex-direction: column; gap: 8px; }
+.chapter-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all .15s; }
+.chapter-item:hover { border-color: var(--accent); }
+.chapter-item .ch-header { display: flex; justify-content: space-between; align-items: center; }
+.chapter-item .ch-num { font-size: 11px; color: var(--muted); }
+.chapter-item .ch-title { font-size: 14px; font-weight: 600; margin-top: 4px; }
+.chapter-item .ch-meta { font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; gap: 12px; }
+.chapter-item .ch-status { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+.ch-status.draft { background: rgba(234,179,8,.15); color: var(--yellow); }
+.ch-status.good { background: rgba(34,197,94,.15); color: var(--green); }
+.ch-status.short { background: rgba(79,172,254,.15); color: var(--accent); }
+
+/* Chapter editor */
+.chapter-editor { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.chapter-editor textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; color: var(--text); font-size: 14px; font-family: 'Segoe UI', sans-serif; resize: vertical; min-height: 300px; line-height: 1.6; outline: none; }
+.chapter-editor textarea:focus { border-color: var(--accent); }
+.chapter-editor .editor-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.chapter-editor .editor-toolbar button { padding: 8px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; font-size: 12px; }
+.chapter-editor .editor-toolbar button:hover { border-color: var(--accent); }
+.chapter-editor .editor-toolbar button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06131f; font-weight: 700; border: none; }
+.chapter-editor .editor-toolbar .word-count { margin-left: auto; font-size: 11px; color: var(--muted); padding: 8px 0; }
+
+/* AI Writer */
+.ai-writer { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 16px; }
+.ai-writer h4 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+.ai-writer textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text); font-size: 13px; resize: vertical; min-height: 80px; outline: none; margin-bottom: 12px; }
+.ai-writer textarea:focus { border-color: var(--accent); }
+.ai-writer .writer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-writer .writer-actions button { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; font-size: 13px; }
+.ai-writer .writer-actions button:hover { border-color: var(--accent); }
+.ai-writer .writer-actions button.primary { background: linear-gradient(135deg, var(--purple), var(--accent)); color: #fff; font-weight: 700; border: none; }
+.ai-writer .writer-status { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+/* Audiobook player */
+.audiobook-view { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.audiobook-player { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 12px; }
+.audiobook-player audio { width: 100%; margin-top: 12px; }
+.audiobook-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.audiobook-item .ab-title { font-size: 13px; }
+.audiobook-item .ab-meta { font-size: 11px; color: var(--muted); }
+.audiobook-item .ab-actions { display: flex; gap: 8px; }
+.audiobook-item .ab-actions button { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); cursor: pointer; }
+.audiobook-item .ab-actions button:hover { color: var(--text); border-color: var(--accent); }
+.ab-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 30px; }
+
+/* Characters */
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.char-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.char-card .char-name { font-size: 14px; font-weight: 600; }
+.char-card .char-role { font-size: 10px; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+.char-role.protagonist { background: rgba(79,172,254,.15); color: var(--accent); }
+.char-role.antagonist { background: rgba(239,68,68,.15); color: var(--red); }
+.char-role.supporting { background: rgba(138,138,160,.15); color: var(--muted); }
+.char-card .char-desc { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+/* New book form */
+.book-form { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.book-form .form-row { margin-bottom: 12px; }
+.book-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.book-form input, .book-form textarea, .book-form select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; outline: none; }
+.book-form input:focus, .book-form textarea:focus { border-color: var(--accent); }
+.book-form .form-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="brand">
+    <div class="logo">M</div>
+    <span>SoulIllusions</span>
+    <span class="badge">Uncensored</span>
+  </div>
+  <div style="font-size:11px;color:var(--muted);">dolphin-mistral @ VPS</div>
+</div>
+
+<div class="app">
+  <!-- ===== Sidebar ===== -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo-area">
+        <div class="logo">M</div>
+        <div class="name">SoulIllusions</div>
+      </div>
+      <button class="new-chat-btn" onclick="newChat()"><span>+</span> New Chat</button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-item" data-tab="overview" onclick="go('overview')"><span class="ic">🏠</span>Overview</div>
+      <div class="nav-item active" data-tab="chat" onclick="go('chat')"><span class="ic">💬</span>Chat</div>
+      <div class="nav-item" data-tab="jarvis" onclick="go('jarvis')"><span class="ic">🎤</span>Jarvis</div>
+      <div class="nav-item" data-tab="browser" onclick="go('browser')"><span class="ic">🌐</span>Web Browser</div>
+      <div class="nav-item" data-tab="agent" onclick="go('agent')"><span class="ic">🤖</span>Agent Control</div>
+      <div class="nav-item" data-tab="books" onclick="go('books')"><span class="ic">📚</span>Books</div>
+      <div class="nav-item" data-tab="config" onclick="go('config')"><span class="ic">⚙️</span>Config</div>
+    </div>
+
+    <div class="chat-history-wrap">
+      <div class="nav-label"><span>Projects</span></div>
+      <div id="projectList"></div>
+      <div class="nav-label" style="margin-top:8px;"><span>Chat History</span></div>
+      <div id="historyList"></div>
+    </div>
+
+    <div class="footer">
+      <div class="status-pill"><div class="dot" id="statusDot"></div><span id="statusText">Connecting…</span></div>
+    </div>
+  </div>
+
+  <!-- ===== Overview ===== -->
+  <div class="panel" id="panel-overview">
+    <div class="overview">
+      <div class="ov-grid">
+        <div class="ov-card"><div class="v" id="ovModel">--</div><div class="l">Active Model</div></div>
+        <div class="ov-card"><div class="v" id="ovStatus">--</div><div class="l">Agent Status</div></div>
+        <div class="ov-card"><div class="v" id="ovUptime">--</div><div class="l">Uptime</div></div>
+        <div class="ov-card"><div class="v" id="ovChats">0</div><div class="l">Total Chats</div></div>
+        <div class="ov-card"><div class="v" id="ovJarvis">0</div><div class="l">Jarvis Commands</div></div>
+        <div class="ov-card"><div class="v" id="ovTokens">0</div><div class="l">Tokens Used</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Chat ===== -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-main">
+      <div class="chat-scroll" id="chatScroll">
+        <div class="chat-empty" id="chatEmpty">
+          <div class="big-ic">🔮</div>
+          <h2>SoulIllusions</h2>
+          <p>Your uncensored autonomous AI agent, running 24/7 on your VPS with dolphin-mistral. Ask anything.</p>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="composer-inner">
+          <textarea id="chatInput" rows="1" placeholder="Message SoulIllusions…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+          <button class="mic-btn" id="micBtn" onclick="toggleJarvisMic()" title="Jarvis voice input">🎤</button>
+          <select class="model-pick" id="modelPick">
+            <option value="dolphin-mistral:latest">dolphin-mistral</option>
+            <option value="qwen2.5:7b">qwen2.5:7b</option>
+            <option value="gemma-12b:latest">gemma-12b</option>
+            <option value="qwen-hermes-7b:latest">qwen-hermes-7b</option>
+          </select>
+          <button class="send-btn" id="sendBtn" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+      <div class="statusbar">
+        <div class="sb-item">Model: <b id="sbModel">dolphin-mistral</b></div>
+        <div class="sb-item" id="sbState">idle</div>
+        <div class="sb-item" style="margin-left:auto;">Tokens: <b id="sbTokens">0</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Jarvis ===== -->
+  <div class="panel" id="panel-jarvis">
+    <div class="jarvis-view">
+      <div class="jarvis-hero">
+        <div class="jarvis-orb" id="jarvisOrb">🎤</div>
+        <h2>Jarvis Voice Assistant</h2>
+        <p>Say "Jarvis" followed by your command. Magnitude will respond with voice and text.</p>
+        <div class="jarvis-controls">
+          <button class="jarvis-btn primary" id="jarvisListenBtn" onclick="toggleJarvisListen()">🎤 Start Listening</button>
+          <button class="jarvis-btn" id="jarvisTtsBtn" onclick="testTTS()">🔊 Test Voice</button>
+          <button class="jarvis-btn" onclick="clearJarvisLog()">🗑 Clear Log</button>
+        </div>
+      </div>
+      <div class="jarvis-stats">
+        <div class="jarvis-stat-card"><div class="v" id="jTotal">0</div><div class="l">Total Commands</div></div>
+        <div class="jarvis-stat-card"><div class="v" id="jAvgTime">0s</div><div class="l">Avg Response</div></div>
+        <div class="jarvis-stat-card"><div class="v" id="jWakeWord">jarvis</div><div class="l">Wake Word</div></div>
+        <div class="jarvis-stat-card"><div class="v" id="jActive">No</div><div class="l">Listening</div></div>
+      </div>
+      <div class="jarvis-log">
+        <h3>Command Log</h3>
+        <div id="jarvisLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Browser ===== -->
+  <div class="panel" id="panel-browser">
+    <div class="browser-view">
+      <div class="browser-bar">
+        <button onclick="browserBack()" title="Back">←</button>
+        <button onclick="browserForward()" title="Forward">→</button>
+        <button onclick="browserRefresh()" title="Refresh">⟳</button>
+        <input id="browserUrl" placeholder="Enter URL or search…" onkeydown="if(event.key==='Enter')navigateBrowser()">
+        <button class="go-btn" onclick="navigateBrowser()">Go</button>
+      </div>
+      <div class="browser-frame-wrap" id="browserFrameWrap" style="display:none;">
+        <iframe id="browserFrame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      </div>
+      <div class="browser-empty" id="browserEmpty">
+        <div class="big-ic">🌐</div>
+        <h2>Web Browser</h2>
+        <p>Browse the web directly from Magnitude. Enter a URL above or pick a bookmark.</p>
+        <div class="browser-bookmarks">
+          <div class="browser-bookmark" onclick="navigateTo('https://www.google.com')">🔍 Google</div>
+          <div class="browser-bookmark" onclick="navigateTo('https://github.com')">🐙 GitHub</div>
+          <div class="browser-bookmark" onclick="navigateTo('https://www.youtube.com')">▶ YouTube</div>
+          <div class="browser-bookmark" onclick="navigateTo('https://huggingface.co')">🤗 HuggingFace</div>
+          <div class="browser-bookmark" onclick="navigateTo('https://ollama.com')">🦙 Ollama</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Agent Control ===== -->
+  <div class="panel" id="panel-agent">
+    <div class="agent-view">
+      <div class="agent-status-grid">
+        <div class="agent-card"><div class="v" id="agStatus">--</div><div class="l">Agent Status</div></div>
+        <div class="agent-card"><div class="v" id="agModel">--</div><div class="l">LLM Model</div></div>
+        <div class="agent-card"><div class="v" id="agRunning">--</div><div class="l">Autonomous Loop</div></div>
+        <div class="agent-card"><div class="v" id="agActions">0</div><div class="l">Actions Taken</div></div>
+      </div>
+      <div class="agent-actions">
+        <button class="jarvis-btn primary" onclick="agentStart()">▶ Start Agent</button>
+        <button class="jarvis-btn" onclick="agentStop()">⏹ Stop Agent</button>
+        <button class="jarvis-btn" onclick="agentRefresh()">⟳ Refresh Status</button>
+      </div>
+      <div class="agent-goal-area">
+        <h3>Set Autonomous Goal</h3>
+        <div class="agent-goal-input">
+          <input id="goalInput" placeholder="e.g. Research the latest AI news and summarize findings…">
+          <button onclick="agentSetGoal()">Set Goal</button>
+        </div>
+        <div id="goalResult" style="font-size:13px;color:var(--muted);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Books ===== -->
+  <div class="panel" id="panel-books">
+    <div class="books-view" id="booksView">
+      <div class="books-header">
+        <h3>📚 Book Library</h3>
+        <button class="jarvis-btn primary" onclick="showNewBookForm()">+ New Book</button>
+      </div>
+      <div id="newBookForm" style="display:none;"></div>
+      <div class="books-grid" id="booksGrid"><div style="color:var(--muted);font-size:13px;padding:20px;">Loading books…</div></div>
+    </div>
+    <div class="book-detail" id="bookDetailView" style="display:none;"></div>
+  </div>
+
+  <!-- ===== Config ===== -->
+  <div class="panel" id="panel-config">
+    <div class="config-view">
+      <h3 style="color:var(--accent);font-size:16px;margin-bottom:16px;">Magnitude Configuration</h3>
+      <div class="config-row">
+        <div class="label">LLM Model</div>
+        <select id="cfgModel" onchange="updateConfig()">
+          <option value="dolphin-mistral:latest">dolphin-mistral (uncensored)</option>
+          <option value="qwen2.5:7b">qwen2.5:7b</option>
+          <option value="gemma-12b:latest">gemma-12b</option>
+          <option value="qwen-hermes-7b:latest">qwen-hermes-7b</option>
+        </select>
+      </div>
+      <div class="config-row">
+        <div class="label">Ollama Endpoint</div>
+        <div class="value">localhost:11434 (VPS)</div>
+      </div>
+      <div class="config-row">
+        <div class="label">API Endpoint</div>
+        <div class="value">magnitude.191.44.121.29.sslip.io</div>
+      </div>
+      <div class="config-row">
+        <div class="label">Censorship</div>
+        <div class="value" style="color:var(--green);">DISABLED (uncensored)</div>
+      </div>
+      <div class="config-row">
+        <div class="label">Always-On</div>
+        <div class="value" style="color:var(--green);">YES (systemd managed)</div>
+      </div>
+      <div class="config-row">
+        <div class="label">Max Actions Before Refresh</div>
+        <select id="cfgMaxActions" onchange="updateConfig()">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== State =====
+const API_BASE = window.location.origin;
+let currentTab = 'chat';
+let chatMessages = [];
+let currentChatId = null;
+let totalTokens = 0;
+let jarvisCommands = 0;
+let jarvisTotalTime = 0;
+let jarvisRecognition = null;
+let jarvisListening = false;
+let jarvisContinuous = false;
+let browserHistory = [];
+let browserHistoryIdx = -1;
+
+// ===== Tab navigation =====
+function go(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('panel-' + tab);
+  if (panel) panel.classList.add('active');
+  const nav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  if (nav) nav.classList.add('active');
+  currentTab = tab;
+  if (tab === 'overview') loadOverview();
+  if (tab === 'agent') agentRefresh();
+  if (tab === 'config') loadConfig();
+  if (tab === 'books') loadBooks();
+  if (tab === 'chat') { loadProjects(); loadConversations(); }
+}
+
+// ===== API calls =====
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(`${API_BASE}${endpoint}`, opts);
+    return await r.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// ===== Chat (persistent on VPS) =====
+let chatMessages = [];
+let currentChatId = null;
+let totalTokens = 0;
+let jarvisCommands = 0;
+let jarvisTotalTime = 0;
+let jarvisRecognition = null;
+let jarvisListening = false;
+let jarvisContinuous = false;
+let browserHistory = [];
+let browserHistoryIdx = -1;
+let currentProjectId = null;
+let projects = [];
+
+async function newChat() {
+  chatMessages = [];
+  currentChatId = null;
+  const scroll = document.getElementById('chatScroll');
+  scroll.innerHTML = '<div class="chat-empty" id="chatEmpty"><div class="big-ic">🔮</div><h2>Magnitude</h2><p>Your uncensored autonomous AI agent, running 24/7 on your VPS with dolphin-mistral. Ask anything.</p></div>';
+  document.getElementById('chatInput').focus();
+  loadConversations();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  const empty = document.getElementById('chatEmpty');
+  if (empty) empty.remove();
+
+  // Create conversation on VPS if not yet
+  if (!currentChatId) {
+    const conv = await apiCall('/api/conversations', 'POST', {
+      title: 'New Chat',
+      model: document.getElementById('modelPick').value,
+      project_id: currentProjectId,
+    });
+    if (!conv.error) currentChatId = conv.id;
+  }
+
+  addMessage('user', text);
+  chatMessages.push({ role: 'user', content: text });
+  await apiCall(`/api/conversations/${currentChatId}/messages`, 'POST', { role: 'user', content: text });
+
+  const scroll = document.getElementById('chatScroll');
+  const thinking = document.createElement('div');
+  thinking.className = 'msg ai';
+  thinking.id = 'thinking';
+  thinking.innerHTML = '<div class="who">Magnitude</div><div class="bubble">Thinking…</div>';
+  scroll.appendChild(thinking);
+  scroll.scrollTop = scroll.scrollHeight;
+  document.getElementById('sbState').textContent = 'processing…';
+  document.getElementById('sendBtn').disabled = true;
+
+  const model = document.getElementById('modelPick').value;
+  const t0 = performance.now();
+
+  const result = await apiCall('/v1/chat/completions', 'POST', {
+    model: model,
+    messages: chatMessages,
+    max_tokens: 2000,
+    temperature: 0.7
+  });
+
+  document.getElementById('thinking')?.remove();
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('sbState').textContent = 'idle';
+
+  if (result.error) {
+    addMessage('ai', 'Error: ' + result.error);
+  } else {
+    const content = result.choices?.[0]?.message?.content || 'No response';
+    addMessage('ai', content);
+    chatMessages.push({ role: 'assistant', content });
+    const tokens = result.usage?.total_tokens || 0;
+    await apiCall(`/api/conversations/${currentChatId}/messages`, 'POST', { role: 'assistant', content, tokens });
+    if (result.usage) {
+      totalTokens += tokens;
+      document.getElementById('sbTokens').textContent = totalTokens;
+    }
+  }
+
+  loadConversations();
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  document.getElementById('sbState').textContent = `last: ${elapsed}s`;
+}
+
+function addMessage(role, text) {
+  const scroll = document.getElementById('chatScroll');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+  const who = role === 'user' ? 'You' : 'SoulIllusions';
+  div.innerHTML = `<div class="who">${who}</div><div class="bubble">${escapeHtml(text)}</div>`;
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function addJarvisMessage(cmd, response) {
+  const scroll = document.getElementById('chatScroll');
+  const empty = document.getElementById('chatEmpty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'msg jarvis';
+  div.innerHTML = `<div class="who">Jarvis</div><div class="bubble"><b>Command:</b> ${escapeHtml(cmd)}<br><b>Magnitude:</b> ${escapeHtml(response)}</div>`;
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== Conversations (persistent) =====
+async function loadConversations() {
+  const result = await apiCall('/api/conversations');
+  const list = document.getElementById('historyList');
+  if (result.error) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:6px;">No history</div>';
+    return;
+  }
+  const convs = result.conversations || [];
+  if (convs.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:6px;">No conversations yet</div>';
+    return;
+  }
+  list.innerHTML = convs.map(c => {
+    const active = c.id === currentChatId ? 'active' : '';
+    return `<div class="history-item ${active}" onclick="loadConversation('${c.id}')"><span class="title">${escapeHtml(c.title)}</span><span class="del" onclick="deleteConversation('${c.id}',event)">🗑</span></div>`;
+  }).join('');
+}
+
+async function loadConversation(id) {
+  const data = await apiCall(`/api/conversations/${id}`);
+  if (data.error) { alert(data.error); return; }
+  currentChatId = id;
+  chatMessages = (data.messages || []).map(m => ({ role: m.role, content: m.content }));
+  const scroll = document.getElementById('chatScroll');
+  scroll.innerHTML = '';
+  if (chatMessages.length === 0) {
+    scroll.innerHTML = '<div class="chat-empty" id="chatEmpty"><div class="big-ic">🔮</div><h2>Magnitude</h2><p>Your uncensored autonomous AI agent, running 24/7 on your VPS with dolphin-mistral. Ask anything.</p></div>';
+  } else {
+    chatMessages.forEach(m => addMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+  }
+  if (data.conversation?.model) document.getElementById('modelPick').value = data.conversation.model;
+  loadConversations();
+}
+
+async function deleteConversation(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this conversation?')) return;
+  await apiCall(`/api/conversations/${id}`, 'DELETE');
+  if (currentChatId === id) newChat();
+  loadConversations();
+}
+
+// ===== Projects =====
+async function loadProjects() {
+  const result = await apiCall('/api/projects');
+  const list = document.getElementById('projectList');
+  if (result.error || !result.projects) return;
+  projects = result.projects;
+  if (projects.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:6px;">No projects · <span style="color:var(--accent);cursor:pointer;" onclick="createProject()">+ New</span></div>';
+    return;
+  }
+  list.innerHTML = projects.map(p => {
+    const active = p.id === currentProjectId ? 'active' : '';
+    return `<div class="history-item ${active}" onclick="selectProject(${p.id})"><span class="title" style="color:${p.color || '#4facfe'};">📁 ${escapeHtml(p.name)}</span><span class="del" onclick="deleteProject(${p.id},event)">🗑</span></div>`;
+  }).join('') + '<div class="history-item" onclick="createProject()" style="color:var(--accent);"><span class="title">+ New Project</span></div>';
+}
+
+async function createProject() {
+  const name = prompt('Project name:');
+  if (!name) return;
+  const result = await apiCall('/api/projects', 'POST', { name, description: '' });
+  if (!result.error) loadProjects();
+}
+
+async function selectProject(pid) {
+  currentProjectId = pid;
+  loadProjects();
+  loadConversations();
+}
+
+async function deleteProject(pid, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this project? Conversations will be kept but unassigned.')) return;
+  await apiCall(`/api/projects/${pid}`, 'DELETE');
+  if (currentProjectId === pid) currentProjectId = null;
+  loadProjects();
+}
+
+// ===== Jarvis Voice =====
+function initJarvis() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    console.warn('Speech Recognition not supported in this browser');
+    return;
+  }
+  jarvisRecognition = new SR();
+  jarvisRecognition.continuous = true;
+  jarvisRecognition.interimResults = false;
+  jarvisRecognition.lang = 'en-US';
+
+  jarvisRecognition.onresult = async (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        const transcript = event.results[i][0].transcript.trim();
+        if (transcript.toLowerCase().includes('jarvis') || jarvisContinuous) {
+          await processJarvisCommand(transcript);
+        }
+      }
+    }
+  };
+
+  jarvisRecognition.onerror = (e) => {
+    console.error('Jarvis recognition error:', e.error);
+    if (e.error === 'not-allowed') {
+      alert('Microphone access required for Jarvis. Please allow it in your browser.');
+      jarvisListening = false;
+      updateJarvisUI();
+    }
+  };
+
+  jarvisRecognition.onend = () => {
+    if (jarvisListening) {
+      try { jarvisRecognition.start(); } catch {}
+    }
+  };
+}
+
+async function toggleJarvisListen() {
+  if (!jarvisRecognition) {
+    alert('Speech recognition not supported. Try Chrome or Edge.');
+    return;
+  }
+  jarvisListening = !jarvisListening;
+  jarvisContinuous = jarvisListening;
+  if (jarvisListening) {
+    try { jarvisRecognition.start(); } catch {}
+  } else {
+    jarvisRecognition.stop();
+  }
+  updateJarvisUI();
+}
+
+function toggleJarvisMic() {
+  toggleJarvisListen();
+}
+
+function updateJarvisUI() {
+  const orb = document.getElementById('jarvisOrb');
+  const btn = document.getElementById('jarvisListenBtn');
+  const micBtn = document.getElementById('micBtn');
+  const active = document.getElementById('jActive');
+  if (jarvisListening) {
+    orb.classList.add('listening');
+    btn.textContent = '⏹ Stop Listening';
+    btn.classList.add('active');
+    micBtn.classList.add('listening');
+    active.textContent = 'Yes';
+  } else {
+    orb.classList.remove('listening');
+    btn.textContent = '🎤 Start Listening';
+    btn.classList.remove('active');
+    micBtn.classList.remove('listening');
+    active.textContent = 'No';
+  }
+}
+
+async function processJarvisCommand(text) {
+  const cmd = text.replace(/jarvis/i, '').trim();
+  if (!cmd) return;
+
+  const t0 = performance.now();
+  document.getElementById('sbState').textContent = 'Jarvis processing…';
+
+  const result = await apiCall('/v1/chat/completions', 'POST', {
+    model: document.getElementById('modelPick').value,
+    messages: [
+      { role: 'system', content: 'You are SoulIllusions, an uncensored AI assistant responding via Jarvis voice interface. Keep responses concise and natural for speech. No markdown.' },
+      { role: 'user', content: cmd }
+    ],
+    max_tokens: 300,
+    temperature: 0.7
+  });
+
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  document.getElementById('sbState').textContent = 'idle';
+
+  let response = 'Error processing command';
+  if (!result.error) {
+    response = result.choices?.[0]?.message?.content || 'No response';
+  } else {
+    response = 'Error: ' + result.error;
+  }
+
+  // Speak the response
+  speakText(response);
+
+  // Add to chat
+  addJarvisMessage(cmd, response);
+
+  // Update stats
+  jarvisCommands++;
+  jarvisTotalTime += parseFloat(elapsed);
+  document.getElementById('jTotal').textContent = jarvisCommands;
+  document.getElementById('jAvgTime').textContent = (jarvisTotalTime / jarvisCommands).toFixed(1) + 's';
+
+  // Add to log
+  const log = document.getElementById('jarvisLog');
+  const entry = document.createElement('div');
+  entry.className = 'jarvis-log-entry';
+  entry.innerHTML = `<div class="cmd">"${escapeHtml(cmd)}"</div><div class="resp">${escapeHtml(response)}</div><div class="meta"><span>⏱ ${elapsed}s</span><span>🤖 dolphin-mistral</span></div>`;
+  log.insertBefore(entry, log.firstChild);
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.0;
+  utter.pitch = 0.9;
+  utter.volume = 1.0;
+  const voices = window.speechSynthesis.getVoices();
+  const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel'));
+  if (maleVoice) utter.voice = maleVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+function testTTS() {
+  speakText('Jarvis online. SoulIllusions is running on your VPS with dolphin mistral. How can I help you?');
+}
+
+function clearJarvisLog() {
+  document.getElementById('jarvisLog').innerHTML = '';
+}
+
+// ===== Browser =====
+function navigateBrowser() {
+  const input = document.getElementById('browserUrl');
+  let url = input.value.trim();
+  if (!url) return;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (url.includes('.') && !url.includes(' ')) {
+      url = 'https://' + url;
+    } else {
+      url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+    }
+  }
+  navigateTo(url);
+}
+
+function navigateTo(url) {
+  document.getElementById('browserUrl').value = url;
+  document.getElementById('browserEmpty').style.display = 'none';
+  document.getElementById('browserFrameWrap').style.display = 'block';
+  document.getElementById('browserFrame').src = url;
+  browserHistory = browserHistory.slice(0, browserHistoryIdx + 1);
+  browserHistory.push(url);
+  browserHistoryIdx = browserHistory.length - 1;
+}
+
+function browserBack() {
+  if (browserHistoryIdx > 0) {
+    browserHistoryIdx--;
+    const url = browserHistory[browserHistoryIdx];
+    document.getElementById('browserUrl').value = url;
+    document.getElementById('browserFrame').src = url;
+  }
+}
+
+function browserForward() {
+  if (browserHistoryIdx < browserHistory.length - 1) {
+    browserHistoryIdx++;
+    const url = browserHistory[browserHistoryIdx];
+    document.getElementById('browserUrl').value = url;
+    document.getElementById('browserFrame').src = url;
+  }
+}
+
+function browserRefresh() {
+  const frame = document.getElementById('browserFrame');
+  const current = frame.src;
+  frame.src = current;
+}
+
+// ===== Agent Control =====
+async function agentRefresh() {
+  const status = await apiCall('/api/status');
+  if (!status.error) {
+    document.getElementById('agStatus').textContent = status.status || 'online';
+    document.getElementById('agModel').textContent = status.model || '--';
+    document.getElementById('agRunning').textContent = 'Active';
+  } else {
+    document.getElementById('agStatus').textContent = 'offline';
+  }
+}
+
+async function agentStart() {
+  const result = await apiCall('/api/start', 'POST');
+  alert(result.status || result.error || 'Unknown');
+  agentRefresh();
+}
+
+async function agentStop() {
+  const result = await apiCall('/api/stop', 'POST');
+  alert(result.status || result.error || 'Unknown');
+  agentRefresh();
+}
+
+async function agentSetGoal() {
+  const goal = document.getElementById('goalInput').value.trim();
+  if (!goal) return;
+  document.getElementById('goalResult').textContent = 'Setting goal…';
+  const result = await apiCall('/api/goal', 'POST', { goal });
+  document.getElementById('goalResult').textContent = JSON.stringify(result);
+}
+
+// ===== Overview =====
+async function loadOverview() {
+  const status = await apiCall('/api/status');
+  if (!status.error) {
+    document.getElementById('ovModel').textContent = (status.model || '--').split(':')[0];
+    document.getElementById('ovStatus').textContent = status.status || '--';
+    document.getElementById('ovUptime').textContent = '24/7';
+  }
+  const convs = await apiCall('/api/conversations');
+  document.getElementById('ovChats').textContent = convs.conversations ? convs.conversations.length : 0;
+  document.getElementById('ovJarvis').textContent = jarvisCommands;
+  document.getElementById('ovTokens').textContent = totalTokens;
+}
+
+// ===== Config =====
+async function loadConfig() {
+  const cfg = await apiCall('/api/config');
+  if (!cfg.error) {
+    if (cfg.local_model) document.getElementById('cfgModel').value = cfg.local_model;
+    if (cfg.max_actions_before_refresh) document.getElementById('cfgMaxActions').value = cfg.max_actions_before_refresh;
+  }
+}
+
+async function updateConfig() {
+  const cfg = {
+    local_model: document.getElementById('cfgModel').value,
+    max_actions_before_refresh: parseInt(document.getElementById('cfgMaxActions').value)
+  };
+  await apiCall('/api/config', 'POST', cfg);
+}
+
+// ===== Books =====
+let currentBookId = null;
+let currentChapterId = null;
+let currentBookTab = 'chapters';
+
+async function loadBooks() {
+  const result = await apiCall('/api/books');
+  const grid = document.getElementById('booksGrid');
+  if (result.error) {
+    grid.innerHTML = '<div style="color:var(--red);font-size:13px;padding:20px;">Book system not available on VPS</div>';
+    return;
+  }
+  const books = result.books || [];
+  if (books.length === 0) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px;">No books yet. Click "+ New Book" to create one.</div>';
+    return;
+  }
+  grid.innerHTML = books.map(b => `
+    <div class="book-card" onclick="openBook(${b.id})">
+      <h4>${escapeHtml(b.title)}</h4>
+      <div class="book-meta">
+        <span>by ${escapeHtml(b.author || 'SoulIllusions')}</span>
+        <span class="book-status ${b.status || 'draft'}">${b.status || 'draft'}</span>
+      </div>
+      <div class="book-meta">
+        <span>${b.word_count || 0} words</span>
+        <span>${b.chapter_count || 0} chapters</span>
+        <span>${escapeHtml(b.genre || 'fiction')}</span>
+      </div>
+      <div class="book-actions">
+        <button onclick="event.stopPropagation();openBook(${b.id})">Open</button>
+        <button onclick="event.stopPropagation();exportBook(${b.id})">Export</button>
+        <button class="del" onclick="event.stopPropagation();deleteBook(${b.id})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showNewBookForm() {
+  const form = document.getElementById('newBookForm');
+  if (form.style.display !== 'none') {
+    form.style.display = 'none';
+    return;
+  }
+  form.style.display = 'block';
+  form.innerHTML = `
+    <div class="book-form">
+      <h4 style="color:var(--accent);margin-bottom:16px;">Create New Book</h4>
+      <div class="form-row"><label>Title</label><input id="nbTitle" placeholder="Book title"></div>
+      <div class="form-row"><label>Description</label><textarea id="nbDesc" placeholder="Brief description of the book" rows="2"></textarea></div>
+      <div class="form-row"><label>Genre</label>
+        <select id="nbGenre">
+          <option value="fiction">Fiction</option>
+          <option value="scifi">Sci-Fi</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="mystery">Mystery</option>
+          <option value="romance">Romance</option>
+          <option value="horror">Horror</option>
+          <option value="thriller">Thriller</option>
+          <option value="adventure">Adventure</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Target Word Count</label><input id="nbTarget" type="number" value="50000"></div>
+      <div class="form-actions">
+        <button class="jarvis-btn primary" onclick="createNewBook()">Create Book</button>
+        <button class="jarvis-btn" onclick="document.getElementById('newBookForm').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+async function createNewBook() {
+  const title = document.getElementById('nbTitle').value.trim();
+  if (!title) { alert('Enter a title'); return; }
+  const result = await apiCall('/api/books/create', 'POST', {
+    title,
+    description: document.getElementById('nbDesc').value.trim(),
+    genre: document.getElementById('nbGenre').value,
+    target_word_count: parseInt(document.getElementById('nbTarget').value) || 50000,
+  });
+  if (result.error) { alert(result.error); return; }
+  document.getElementById('newBookForm').style.display = 'none';
+  loadBooks();
+  openBook(result.id);
+}
+
+async function openBook(bookId) {
+  currentBookId = bookId;
+  document.getElementById('booksView').style.display = 'none';
+  const detail = document.getElementById('bookDetailView');
+  detail.style.display = 'block';
+  detail.innerHTML = '<div style="color:var(--muted);padding:20px;">Loading…</div>';
+  const data = await apiCall(`/api/books/${bookId}`);
+  if (data.error) { detail.innerHTML = '<div style="color:var(--red);padding:20px;">' + data.error + '</div>'; return; }
+  renderBookDetail(data);
+}
+
+function renderBookDetail(data) {
+  const book = data.book;
+  const detail = document.getElementById('bookDetailView');
+  detail.innerHTML = `
+    <div class="book-detail-header">
+      <div>
+        <h2>${escapeHtml(book.title)}</h2>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">by ${escapeHtml(book.author || 'SoulIllusions')} · ${book.word_count || 0} words · ${book.chapter_count || 0} chapters · <span class="book-status ${book.status || 'draft'}">${book.status || 'draft'}</span></div>
+        ${book.description ? '<div style="font-size:13px;color:var(--muted);margin-top:8px;">' + escapeHtml(book.description) + '</div>' : ''}
+      </div>
+      <button class="back-btn" onclick="backToBooks()">← Back to Library</button>
+    </div>
+    <div class="book-tabs">
+      <div class="book-tab active" data-btab="chapters" onclick="switchBookTab('chapters')">📖 Chapters</div>
+      <div class="book-tab" data-btab="characters" onclick="switchBookTab('characters')">👥 Characters</div>
+      <div class="book-tab" data-btab="audiobook" onclick="switchBookTab('audiobook')">🔊 Audiobook</div>
+      <div class="book-tab" data-btab="analyze" onclick="switchBookTab('analyze')">📊 Analyze</div>
+    </div>
+    <div id="bookTabContent"></div>
+  `;
+  window._bookData = data;
+  renderChapters(data.chapters || []);
+}
+
+function switchBookTab(tab) {
+  currentBookTab = tab;
+  document.querySelectorAll('.book-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.book-tab[data-btab="${tab}"]`).classList.add('active');
+  if (tab === 'chapters') renderChapters(window._bookData.chapters || []);
+  if (tab === 'characters') renderCharacters(window._bookData.characters || []);
+  if (tab === 'audiobook') renderAudiobookTab();
+  if (tab === 'analyze') renderAnalyzeTab();
+}
+
+function renderChapters(chapters) {
+  const content = document.getElementById('bookTabContent');
+  if (chapters.length === 0) {
+    content.innerHTML = '<div style="color:var(--muted);padding:20px;">No chapters yet. Use the AI writer below to create one.</div>' + renderAIWriter();
+    return;
+  }
+  let html = '<div class="chapter-list">';
+  for (const ch of chapters) {
+    const status = ch.word_count >= (ch.target_word_count || 3000) * 0.7 ? 'good' : (ch.word_count > 0 ? 'short' : 'draft');
+    html += `
+      <div class="chapter-item" onclick="openChapter(${ch.id})">
+        <div class="ch-header"><span class="ch-num">Chapter ${ch.chapter_number}</span><span class="ch-status ${status}">${status}</span></div>
+        <div class="ch-title">${escapeHtml(ch.title || 'Untitled')}</div>
+        <div class="ch-meta"><span>${ch.word_count || 0} words</span><span>${ch.status || 'draft'}</span></div>
+      </div>
+    `;
+  }
+  html += '</div>' + renderAIWriter();
+  content.innerHTML = html;
+}
+
+function renderAIWriter() {
+  return `
+    <div class="ai-writer">
+      <h4>✍️ AI Writer — Write with dolphin-mistral</h4>
+      <textarea id="writerPrompt" placeholder="Describe what should happen in the next chapter… e.g. 'Write chapter 1: The hero discovers an ancient map in their grandfather's attic'"></textarea>
+      <div class="writer-actions">
+        <button class="primary" onclick="aiWriteChapter()">✍️ Write New Chapter</button>
+        <button onclick="aiContinueChapter()">➡️ Continue Current Chapter</button>
+        <button onclick="aiCorrectChapter()">✅ Fix Spelling & Grammar</button>
+      </div>
+      <div class="writer-status" id="writerStatus"></div>
+    </div>
+  `;
+}
+
+async function aiWriteChapter() {
+  const prompt = document.getElementById('writerPrompt').value.trim();
+  if (!prompt) { alert('Enter a writing prompt'); return; }
+  const status = document.getElementById('writerStatus');
+  status.textContent = 'Writing with dolphin-mistral… this may take a minute.';
+  const chapters = window._bookData.chapters || [];
+  const nextNum = chapters.length > 0 ? Math.max(...chapters.map(c => c.chapter_number)) + 1 : 1;
+  const result = await apiCall(`/api/books/${currentBookId}/write`, 'POST', {
+    chapter_number: nextNum,
+    prompt,
+  });
+  if (result.error) { status.textContent = 'Error: ' + result.error; return; }
+  status.textContent = `Written ${result.word_count || 0} words (${result.length_status || 'unknown'})`;
+  // Show the content and offer to save
+  const content = document.getElementById('bookTabContent');
+  const writerDiv = content.querySelector('.ai-writer');
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'chapter-editor';
+  resultDiv.style.marginTop = '16px';
+  resultDiv.innerHTML = `
+    <div class="editor-toolbar">
+      <span style="font-size:13px;color:var(--accent);">AI Generated — Chapter ${nextNum}</span>
+      <button class="primary" onclick="saveAIChapter(${nextNum})">💾 Save as Chapter</button>
+      <span class="word-count">${result.word_count || 0} words</span>
+    </div>
+    <textarea id="aiChapterContent" rows="20">${escapeHtml(result.content || '')}</textarea>
+  `;
+  writerDiv.insertAdjacentElement('afterend', resultDiv);
+  window._aiChapterContent = result.content;
+  window._aiChapterNum = nextNum;
+}
+
+async function saveAIChapter(chapterNum) {
+  const content = document.getElementById('aiChapterContent').value.trim();
+  if (!content) { alert('No content to save'); return; }
+  const result = await apiCall(`/api/books/${currentBookId}/chapter`, 'POST', {
+    chapter_number: chapterNum,
+    title: `Chapter ${chapterNum}`,
+    content,
+  });
+  if (result.error) { alert(result.error); return; }
+  alert(`Chapter ${chapterNum} saved! ${result.word_count} words`);
+  openBook(currentBookId);
+}
+
+async function aiContinueChapter() {
+  if (!currentChapterId) { alert('Open a chapter first'); return; }
+  const direction = document.getElementById('writerPrompt').value.trim();
+  const status = document.getElementById('writerStatus');
+  status.textContent = 'Continuing chapter with AI…';
+  const result = await apiCall(`/api/books/chapter/${currentChapterId}/continue`, 'POST', { direction });
+  if (result.error) { status.textContent = 'Error: ' + result.error; return; }
+  status.textContent = `Added ${result.word_count || 0} words total`;
+  openChapter(currentChapterId);
+}
+
+async function aiCorrectChapter() {
+  if (!currentChapterId) { alert('Open a chapter first'); return; }
+  const status = document.getElementById('writerStatus');
+  status.textContent = 'Fixing spelling and grammar…';
+  const result = await apiCall(`/api/books/chapter/${currentChapterId}/correct`, 'POST');
+  if (result.error) { status.textContent = 'Error: ' + result.error; return; }
+  status.textContent = 'Chapter corrected!';
+  openChapter(currentChapterId);
+}
+
+function openChapter(chapterId) {
+  currentChapterId = chapterId;
+  const chapters = window._bookData.chapters || [];
+  const ch = chapters.find(c => c.id === chapterId);
+  if (!ch) return;
+  const content = document.getElementById('bookTabContent');
+  content.innerHTML = `
+    <div class="chapter-editor">
+      <div class="editor-toolbar">
+        <input id="chTitleInput" value="${escapeHtml(ch.title || '')}" placeholder="Chapter title" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+        <button class="primary" onclick="saveChapter(${ch.id})">💾 Save</button>
+        <button onclick="openBook(currentBookId)">← Back to Chapters</button>
+        <span class="word-count" id="chWordCount">${ch.word_count || 0} words</span>
+      </div>
+      <textarea id="chContentInput" rows="25" oninput="updateWordCount()">${escapeHtml(ch.content || '')}</textarea>
+    </div>
+    <div class="ai-writer">
+      <h4>✍️ AI Writer</h4>
+      <textarea id="writerPrompt" placeholder="Direction for continuing this chapter…"></textarea>
+      <div class="writer-actions">
+        <button class="primary" onclick="aiContinueChapter()">➡️ Continue This Chapter</button>
+        <button onclick="aiCorrectChapter()">✅ Fix Spelling & Grammar</button>
+      </div>
+      <div class="writer-status" id="writerStatus"></div>
+    </div>
+  `;
+}
+
+function updateWordCount() {
+  const text = document.getElementById('chContentInput').value;
+  const wc = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  document.getElementById('chWordCount').textContent = wc + ' words';
+}
+
+async function saveChapter(chapterId) {
+  const title = document.getElementById('chTitleInput').value.trim();
+  const content = document.getElementById('chContentInput').value.trim();
+  const result = await apiCall(`/api/books/chapter/${chapterId}`, 'PUT', { title, content });
+  if (result.error) { alert(result.error); return; }
+  alert(`Saved! ${result.word_count} words (${result.length_status})`);
+  openBook(currentBookId);
+}
+
+function renderCharacters(characters) {
+  const content = document.getElementById('bookTabContent');
+  let html = '<div class="char-grid">';
+  for (const ch of characters) {
+    html += `
+      <div class="char-card">
+        <div class="char-name">${escapeHtml(ch.name)}</div>
+        <span class="char-role ${ch.role}">${ch.role}</span>
+        <div class="char-desc">${escapeHtml(ch.description || ch.personality || '')}</div>
+      </div>
+    `;
+  }
+  html += '</div>';
+  html += `
+    <div class="book-form" style="margin-top:20px;">
+      <h4 style="color:var(--accent);margin-bottom:16px;">Add Character</h4>
+      <div class="form-row"><label>Name</label><input id="charName" placeholder="Character name"></div>
+      <div class="form-row"><label>Role</label>
+        <select id="charRole">
+          <option value="supporting">Supporting</option>
+          <option value="protagonist">Protagonist</option>
+          <option value="antagonist">Antagonist</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Description</label><textarea id="charDesc" placeholder="Character description" rows="2"></textarea></div>
+      <div class="form-row"><label>Appearance</label><input id="charAppearance" placeholder="Physical appearance"></div>
+      <div class="form-actions"><button class="jarvis-btn primary" onclick="addCharacter()">Add Character</button></div>
+    </div>
+  `;
+  content.innerHTML = html;
+}
+
+async function addCharacter() {
+  const name = document.getElementById('charName').value.trim();
+  if (!name) { alert('Enter a name'); return; }
+  const result = await apiCall(`/api/books/${currentBookId}/character`, 'POST', {
+    name,
+    role: document.getElementById('charRole').value,
+    description: document.getElementById('charDesc').value.trim(),
+    appearance: document.getElementById('charAppearance').value.trim(),
+  });
+  if (result.error) { alert(result.error); return; }
+  openBook(currentBookId);
+  switchBookTab('characters');
+}
+
+async function renderAudiobookTab() {
+  const content = document.getElementById('bookTabContent');
+  content.innerHTML = '<div style="color:var(--muted);padding:20px;">Loading audiobooks…</div>';
+  const result = await apiCall(`/api/books/${currentBookId}/audiobooks`);
+  const audiobooks = result.audiobooks || [];
+  let html = `
+    <div class="audiobook-view">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="jarvis-btn primary" onclick="generateAllAudiobooks()">🔊 Generate All Chapters</button>
+        <span style="font-size:12px;color:var(--muted);padding:10px 0;">Generates audio for all chapters using TTS</span>
+      </div>
+  `;
+  if (audiobooks.length === 0) {
+    html += '<div class="ab-empty">No audiobooks generated yet. Click the button above to generate.</div>';
+  } else {
+    for (const ab of audiobooks) {
+      html += `
+        <div class="audiobook-item">
+          <div>
+            <div class="ab-title">${escapeHtml(ab.chapter_title || 'Unknown chapter')}</div>
+            <div class="ab-meta">Voice: ${escapeHtml(ab.voice)} · ${ab.status} · ${ab.duration_seconds || 0}s</div>
+          </div>
+          <div class="ab-actions">
+            <button onclick="playAudiobook('${escapeHtml(ab.audio_path || '')}')">▶ Play</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+  html += '</div>';
+  html += `
+    <div class="audiobook-player" id="abPlayer" style="display:none;">
+      <div style="font-size:13px;color:var(--accent);margin-bottom:8px;">Now Playing</div>
+      <audio id="abAudio" controls></audio>
+    </div>
+  `;
+  content.innerHTML = html;
+}
+
+async function generateAllAudiobooks() {
+  const content = document.getElementById('bookTabContent');
+  content.innerHTML = '<div style="color:var(--muted);padding:20px;">Generating audiobooks… this may take several minutes.</div>';
+  const result = await apiCall(`/api/books/${currentBookId}/audiobook`, 'POST', {});
+  if (result.error) { alert(result.error); renderAudiobookTab(); return; }
+  alert(`Generated ${result.total || 0} chapter audio files`);
+  renderAudiobookTab();
+}
+
+function playAudiobook(path) {
+  const player = document.getElementById('abPlayer');
+  const audio = document.getElementById('abAudio');
+  player.style.display = 'block';
+  audio.src = `/api/browse?url=${encodeURIComponent('file://' + path)}`;
+  audio.play();
+}
+
+function renderAnalyzeTab() {
+  const content = document.getElementById('bookTabContent');
+  content.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <h4 style="color:var(--accent);margin-bottom:12px;">📊 Book Analysis Engine</h4>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Analyzes the book to extract characters, plot structure, visual scenes for text-to-video, and game adaptation data.</p>
+      <button class="jarvis-btn primary" onclick="runAnalysis()">Run Full Analysis</button>
+      <div id="analysisResult" style="margin-top:16px;"></div>
+    </div>
+  `;
+}
+
+async function runAnalysis() {
+  const resultDiv = document.getElementById('analysisResult');
+  resultDiv.innerHTML = '<div style="color:var(--muted);">Analyzing book…</div>';
+  const result = await apiCall(`/api/books/${currentBookId}/analyze`, 'POST');
+  if (result.error) { resultDiv.innerHTML = '<div style="color:var(--red);">' + result.error + '</div>'; return; }
+  resultDiv.innerHTML = `<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:11px;color:#cde3cd;overflow:auto;max-height:500px;">${escapeHtml(JSON.stringify(result, null, 2))}</pre>`;
+}
+
+async function exportBook(bookId) {
+  const fmt = prompt('Export format: txt, html, or json?', 'txt');
+  if (!fmt) return;
+  const result = await apiCall(`/api/books/${bookId}/export`, 'POST', { format: fmt });
+  if (result.error) { alert(result.error); return; }
+  alert(`Exported to ${result.file}`);
+}
+
+async function deleteBook(bookId) {
+  if (!confirm('Delete this book and all its chapters?')) return;
+  const result = await apiCall(`/api/books/${bookId}`, 'DELETE');
+  if (result.error) { alert(result.error); return; }
+  loadBooks();
+}
+
+function backToBooks() {
+  document.getElementById('bookDetailView').style.display = 'none';
+  document.getElementById('booksView').style.display = 'block';
+  loadBooks();
+}
+
+// ===== Status check =====
+async function checkStatus() {
+  const status = await apiCall('/api/status');
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  if (!status.error && status.status === 'online') {
+    dot.classList.add('on');
+    text.textContent = 'Online — ' + (status.model || 'unknown');
+  } else {
+    dot.classList.remove('on');
+    text.textContent = 'Offline';
+  }
+}
+
+// ===== Init =====
+window.addEventListener('load', () => {
+  initJarvis();
+  checkStatus();
+  setInterval(checkStatus, 30000);
+  loadProjects();
+  loadConversations();
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+});
+
+// Auto-resize textarea
+document.getElementById('chatInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+});
+</script>
+</body>
+</html>
